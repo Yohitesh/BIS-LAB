@@ -1,0 +1,61 @@
+import random
+
+# Fitness function
+def fitness_function(x):
+    return x ** 3
+
+# Initial population
+def initialize_population(size):
+    return [random.uniform(0, 10) for _ in range(size)]
+
+# Selection: Tournament selection
+def select_parents(population, fitnesses):
+    selected = []
+    for _ in range(len(population)):
+        i, j = random.sample(range(len(population)), 2)
+        selected.append(population[i] if fitnesses[i] > fitnesses[j] else population[j])
+    return selected
+
+# Crossover
+def crossover(parent1, parent2):
+    alpha = random.random()
+    return alpha * parent1 + (1 - alpha) * parent2
+
+# Mutation
+def mutate(individual, mutation_rate=0.1):
+    if random.random() < mutation_rate:
+        # Add or subtract a small random number, keep in [0, 10]
+        return min(max(individual + random.uniform(-1, 1), 0), 10)
+    return individual
+
+# Main Genetic Algorithm
+def genetic_algorithm(pop_size=30, generations=50, mutation_rate=0.1):
+    population = initialize_population(pop_size)
+
+    for gen in range(generations):
+        fitnesses = [fitness_function(ind) for ind in population]
+        best_individual = population[fitnesses.index(max(fitnesses))]
+        best_fitness = max(fitnesses)
+
+        print(f"Generation {gen + 1}: Best x = {best_individual:.4f}, Fitness = {best_fitness:.4f}")
+
+        # Selection
+        parents = select_parents(population, fitnesses)
+
+        # Next generation
+        next_generation = [best_individual]  # Elitism
+
+        while len(next_generation) < pop_size:
+            p1, p2 = random.sample(parents, 2)
+            child = crossover(p1, p2)
+            child = mutate(child, mutation_rate)
+            next_generation.append(child)
+
+        population = next_generation
+
+    # Final result
+    final_fitnesses = [fitness_function(ind) for ind in population]
+    best = population[final_fitnesses.index(max(final_fitnesses))]
+    print(f"\nBest solution: x = {best:.4f}, f(x) = {fitness_function(best):.4f}")
+
+genetic_algorithm()

@@ -1,0 +1,103 @@
+import random
+import math
+
+CITIES = {
+    0: (0, 0),
+    1: (1, 5),
+    2: (5, 2),
+    3: (6, 6),
+    4: (8, 3),
+    5: (2, 8),
+    6: (7, 9),
+    7: (9, 5)
+}
+
+NUM_CITIES = len(CITIES)
+POP_SIZE = 100
+GENERATIONS = 10
+MUTATION_RATE = 0.5
+
+def distance(city1, city2):
+    x1, y1 = CITIES[city1]
+    x2, y2 = CITIES[city2]
+    return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+
+def tour_length(tour):
+    return sum(distance(tour[i], tour[(i + 1) % NUM_CITIES]) for i in range(NUM_CITIES))
+
+def fitness(tour):
+    return 1 / (tour_length(tour) + 1e-6)  # higher is better
+
+def create_chromosome():
+    tour = list(range(NUM_CITIES))
+    random.shuffle(tour)
+    return tour
+
+def selection(population):
+    """Tournament selection"""
+    k = 3
+    candidates = random.sample(population, k)
+    return max(candidates, key=fitness)
+
+def crossover(parent1, parent2):
+    """Order Crossover (OX)"""
+    start, end = sorted(random.sample(range(NUM_CITIES), 2))
+    child = [None] * NUM_CITIES
+    child[start:end] = parent1[start:end]
+
+    p2_filtered = [c for c in parent2 if c not in child]
+    j = 0
+    for i in range(NUM_CITIES):
+        if child[i] is None:
+            child[i] = p2_filtered[j]
+            j += 1
+    return child
+
+def mutate(tour):
+    """Swap Mutation"""
+    if random.random() < MUTATION_RATE:
+        i, j = random.sample(range(NUM_CITIES), 2)
+        tour[i], tour[j] = tour[j], tour[i]
+    return tour
+    
+def gep_tsp():
+    population = [create_chromosome() for _ in range(POP_SIZE)]
+    best = min(population, key=tour_length)
+
+    for gen in range(GENERATIONS):
+        new_population = []
+        for _ in range(POP_SIZE):
+            p1, p2 = selection(population), selection(population)
+            child = crossover(p1, p2)
+            child = mutate(child)
+            new_population.append(child)
+
+        population = new_population
+        current_best = min(population, key=tour_length)
+
+        if tour_length(current_best) < tour_length(best):
+            best = current_best
+
+        print(f"Gen {gen+1}: Best length = {tour_length(best):.2f}")
+
+    return best
+
+best_tour = gep_tsp()
+print("\n✅ Final Best Tour:", best_tour)
+print("📏 Tour Length:", tour_length(best_tour))
+
+OUTPUT:
+
+Gen 1: Best length = 33.15
+Gen 2: Best length = 33.15
+Gen 3: Best length = 33.15
+Gen 4: Best length = 33.15
+Gen 5: Best length = 31.15
+Gen 6: Best length = 31.15
+Gen 7: Best length = 30.47
+Gen 8: Best length = 30.47
+Gen 9: Best length = 30.47
+Gen 10: Best length = 30.47
+
+✅ Final Best Tour: [6, 3, 7, 4, 2, 0, 1, 5]
+📏 Tour Length: 30.46838245249338

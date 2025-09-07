@@ -1,0 +1,86 @@
+import random
+import math
+
+# ------------------------------
+# PSO Parameters
+# ------------------------------
+num_particles = 10   # number of fish
+iterations = 7
+bounds = [-30, 20]   # ocean limits
+w = 0.5              # inertia weight
+c1 = 1.5             # cognitive (self)
+c2 = 1.5             # social (swarm)
+
+# Predator position (danger point)
+predator = [0, 0]
+
+# ------------------------------
+# Fitness Function
+# ------------------------------
+def fitness(position):
+    # maximize distance from predator
+    return math.dist(position, predator)
+
+# ------------------------------
+# Initialize swarm
+# ------------------------------
+particles = []
+for _ in range(num_particles):
+    pos = [random.uniform(bounds[0], bounds[1]),
+           random.uniform(bounds[0], bounds[1])]
+    vel = [random.uniform(-1, 1), random.uniform(-1, 1)]
+    best_pos = pos[:]
+    best_fit = fitness(pos)
+    particles.append({"pos": pos, "vel": vel, "best_pos": best_pos, "best_fit": best_fit})
+
+# Global best
+g_best = max(particles, key=lambda p: p["best_fit"])
+g_best_pos = g_best["best_pos"][:]
+g_best_fit = g_best["best_fit"]
+
+# ------------------------------
+# PSO Main Loop
+# ------------------------------
+for i in range(1, iterations + 1):
+    for p in particles:
+        # Update velocity
+        for d in range(2):  # 2D
+            r1, r2 = random.random(), random.random()
+            cognitive = c1 * r1 * (p["best_pos"][d] - p["pos"][d])
+            social = c2 * r2 * (g_best_pos[d] - p["pos"][d])
+            p["vel"][d] = w * p["vel"][d] + cognitive + social
+
+            # Update position
+            p["pos"][d] += p["vel"][d]
+
+            # Bound check
+            p["pos"][d] = max(bounds[0], min(bounds[1], p["pos"][d]))
+
+        # Evaluate
+        fit = fitness(p["pos"])
+        if fit > p["best_fit"]:
+            p["best_fit"] = fit
+            p["best_pos"] = p["pos"][:]
+
+    # Update global best
+    current_best = max(particles, key=lambda p: p["best_fit"])
+    if current_best["best_fit"] > g_best_fit:
+        g_best_fit = current_best["best_fit"]
+        g_best_pos = current_best["best_pos"][:]
+
+    # Print output in required format
+    print(f"{i}: Best fitness={g_best_fit:.4f} at [{g_best_pos[0]:.4f}, {g_best_pos[1]:.4f}]")
+
+OUTPUT:
+
+1: Best fitness=30.7205 at [-30.0000, -6.6143]
+2: Best fitness=33.4856 at [-30.0000, -14.8757]
+3: Best fitness=36.3203 at [-30.0000, -20.4735]
+4: Best fitness=41.6963 at [-30.0000, -28.9583]
+5: Best fitness=42.4264 at [-30.0000, -30.0000]
+6: Best fitness=42.4264 at [-30.0000, -30.0000]
+7: Best fitness=42.4264 at [-30.0000, -30.0000]
+
+Final Best Solution:
+Position: [-30.0000, -30.0000]
+Fitness Value: 42.4264

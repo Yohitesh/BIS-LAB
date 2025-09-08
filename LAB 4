@@ -1,0 +1,124 @@
+import random
+import math
+
+# ------------------------------
+# Parameters
+# ------------------------------
+grid_size = 20
+start = (0, 0)
+goal = (9, 13)
+obstacles = {(1,1), (2,2), (3,1)}  # blocked cells
+
+num_ants = 10
+iterations = 10
+
+
+alpha, beta = 1.0, 2.0   # pheromone vs heuristic influence
+evaporation = 0.3
+Q = 100
+
+# ------------------------------
+# Initialize pheromone
+# ------------------------------
+pheromone = {}
+for x in range(grid_size):
+    for y in range(grid_size):
+        pheromone[(x, y)] = 1.0
+
+# ------------------------------
+# Heuristic function (closer to goal = better)
+# ------------------------------
+def heuristic(pos):
+    return 1 / (1 + math.dist(pos, goal))
+
+# ------------------------------
+# Get neighbors (up, down, left, right)
+# ------------------------------
+def neighbors(pos):
+    x, y = pos
+    moves = [(x+1,y), (x-1,y), (x,y+1), (x,y-1)]
+    valid = [(nx,ny) for nx,ny in moves if 0 <= nx < grid_size and 0 <= ny < grid_size]
+    valid = [p for p in valid if p not in obstacles]
+    return valid
+
+# ------------------------------
+# Construct path for one ant
+# ------------------------------
+def construct_path():
+    path = [start]
+    pos = start
+    visited = set()
+    
+    while pos != goal and len(path) < grid_size**2:
+        neigh = neighbors(pos)
+        neigh = [n for n in neigh if n not in visited] or neighbors(pos)
+        
+        probs = []
+        for n in neigh:
+            tau = pheromone[n] ** alpha
+            eta = heuristic(n) ** beta
+            probs.append(tau * eta)
+        
+        total = sum(probs)
+        probs = [p/total for p in probs]
+        
+        pos = random.choices(neigh, weights=probs)[0]
+        path.append(pos)
+        visited.add(pos)
+    
+    return path
+
+# ------------------------------
+# Main ACO loop
+# ------------------------------
+best_path = None
+best_length = float("inf")
+
+for it in range(1, iterations+1):
+    all_paths = []
+    
+    for ant in range(num_ants):
+        path = construct_path()
+        length = len(path)
+        if path[-1] == goal:  # valid path
+            all_paths.append((path, length))
+            if length < best_length:
+                best_length = length
+                best_path = path
+    
+    # Evaporate
+    for cell in pheromone:
+        pheromone[cell] *= (1 - evaporation)
+    
+    # Deposit pheromones
+    for path, length in all_paths:
+        deposit = Q / length
+        for cell in path:
+            pheromone[cell] += deposit
+    
+    print(f"{it}: Best length={best_length}, Path={best_path}")
+
+# ------------------------------
+# Final result
+# ------------------------------
+print("\nFinal Best Path:", best_path)
+print("Final Path Length:", best_length)
+
+
+OUTPUT:
+
+1: Best length=49, Path=[(0, 0), (0, 1), (0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (5, 1), (6, 1), (6, 2), (7, 2), (8, 2), (8, 3), (8, 4), (9, 4), (9, 3), (9, 2), (9, 1), (9, 0), (10, 0), (10, 1), (10, 2), (10, 3), (10, 4), (11, 4), (12, 4), (12, 5), (13, 5), (14, 5), (14, 6), (13, 6), (12, 6), (12, 7), (12, 8), (11, 8), (11, 7), (10, 7), (10, 8), (10, 9), (10, 10), (10, 11), (10, 12), (10, 13), (11, 13), (11, 14), (10, 14), (9, 14), (9, 13)]
+2: Best length=41, Path=[(0, 0), (0, 1), (0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (5, 1), (5, 2), (4, 2), (3, 2), (3, 3), (4, 3), (4, 4), (5, 4), (5, 3), (6, 3), (6, 2), (6, 1), (7, 1), (7, 2), (8, 2), (8, 3), (8, 4), (9, 4), (9, 5), (9, 6), (8, 6), (7, 6), (7, 7), (8, 7), (8, 8), (8, 9), (8, 10), (9, 10), (9, 11), (9, 12), (10, 12), (10, 13), (9, 13)]
+3: Best length=37, Path=[(0, 0), (0, 1), (0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (6, 1), (5, 1), (4, 1), (4, 2), (5, 2), (5, 3), (6, 3), (7, 3), (7, 4), (7, 5), (7, 6), (7, 7), (6, 7), (6, 8), (7, 8), (7, 9), (8, 9), (8, 8), (9, 8), (10, 8), (10, 9), (11, 9), (11, 10), (10, 10), (10, 11), (10, 12), (9, 12), (9, 13)]
+4: Best length=33, Path=[(0, 0), (0, 1), (0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (4, 1), (5, 1), (6, 1), (6, 2), (6, 3), (6, 4), (6, 5), (7, 5), (7, 4), (7, 3), (8, 3), (8, 4), (8, 5), (8, 6), (8, 7), (8, 8), (9, 8), (9, 9), (8, 9), (8, 10), (9, 10), (9, 11), (10, 11), (10, 12), (9, 12), (9, 13)]
+5: Best length=33, Path=[(0, 0), (0, 1), (0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (4, 1), (5, 1), (6, 1), (6, 2), (6, 3), (6, 4), (6, 5), (7, 5), (7, 4), (7, 3), (8, 3), (8, 4), (8, 5), (8, 6), (8, 7), (8, 8), (9, 8), (9, 9), (8, 9), (8, 10), (9, 10), (9, 11), (10, 11), (10, 12), (9, 12), (9, 13)]
+6: Best length=33, Path=[(0, 0), (0, 1), (0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (4, 1), (5, 1), (6, 1), (6, 2), (6, 3), (6, 4), (6, 5), (7, 5), (7, 4), (7, 3), (8, 3), (8, 4), (8, 5), (8, 6), (8, 7), (8, 8), (9, 8), (9, 9), (8, 9), (8, 10), (9, 10), (9, 11), (10, 11), (10, 12), (9, 12), (9, 13)]
+7: Best length=27, Path=[(0, 0), (1, 0), (0, 0), (0, 1), (0, 2), (0, 3), (1, 3), (1, 4), (0, 4), (0, 5), (1, 5), (1, 6), (2, 6), (3, 6), (3, 7), (4, 7), (4, 8), (5, 8), (6, 8), (6, 9), (6, 10), (7, 10), (8, 10), (9, 10), (9, 11), (9, 12), (9, 13)]
+8: Best length=27, Path=[(0, 0), (1, 0), (0, 0), (0, 1), (0, 2), (0, 3), (1, 3), (1, 4), (0, 4), (0, 5), (1, 5), (1, 6), (2, 6), (3, 6), (3, 7), (4, 7), (4, 8), (5, 8), (6, 8), (6, 9), (6, 10), (7, 10), (8, 10), (9, 10), (9, 11), (9, 12), (9, 13)]
+9: Best length=25, Path=[(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (4, 1), (4, 2), (4, 3), (5, 3), (5, 4), (5, 5), (5, 6), (6, 6), (7, 6), (8, 6), (8, 7), (8, 8), (8, 9), (8, 10), (7, 10), (7, 11), (8, 11), (9, 11), (9, 12), (9, 13)]
+10: Best length=25, Path=[(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (4, 1), (4, 2), (4, 3), (5, 3), (5, 4), (5, 5), (5, 6), (6, 6), (7, 6), (8, 6), (8, 7), (8, 8), (8, 9), (8, 10), (7, 10), (7, 11), (8, 11), (9, 11), (9, 12), (9, 13)]
+
+Final Best Path: [(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (4, 1), (4, 2), (4, 3), (5, 3), (5, 4), (5, 5), (5, 6), (6, 6), (7, 6), (8, 6), (8, 7), (8, 8), (8, 9), (8, 10), (7, 10), (7, 11), (8, 11), (9, 11), (9, 12), (9, 13)]
+Final Path Length: 25
+
+=== Code Execution Successful ===
